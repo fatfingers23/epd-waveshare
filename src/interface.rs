@@ -1,5 +1,6 @@
 use crate::traits::Command;
 use core::marker::PhantomData;
+use defmt::info;
 use embedded_hal::{delay::*, digital::*, spi::SpiDevice};
 
 /// The Connection Interface of all (?) Waveshare EPD-Devices
@@ -143,6 +144,7 @@ where
             // - delay waiting enables task switching on realtime OS
             // -> keep it and leave the decision to the user
             if self.delay_us > 0 {
+                info!("busy waiting");
                 delay.delay_us(self.delay_us);
             }
         }

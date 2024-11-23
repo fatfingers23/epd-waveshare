@@ -16,6 +16,7 @@ edition = "2021"
 embedded-graphics-core = { version = "0.4", optional = true }
 embedded-hal = "1.0.0"
 bit_field = "0.10.1"
+defmt = "0.3.8"
 
 [dev-dependencies]
 embedded-graphics = "0.8"
