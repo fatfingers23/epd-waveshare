@@ -51,7 +51,7 @@ pub struct Display<
     const HEIGHT: u32,
     const BWRBIT: bool,
     const BYTECOUNT: usize,
-    COLOR: ColorType + PixelColor,
+    COLOR: PixelColor,
 > {
     buffer: [u8; BYTECOUNT],
     rotation: DisplayRotation,

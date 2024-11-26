@@ -93,83 +93,115 @@ where
     fn init(&mut self, spi: &mut SPI, delay: &mut DELAY) -> Result<(), SPI::Error> {
         // HW reset
         self.interface.reset(delay, 10_000, 10_000);
+        self.wait_until_idle(spi, delay)?;
 
-        if self.refresh == RefreshLut::Quick {
-            self.set_vcom_register(spi, (-9).vcom())?;
-            self.wait_until_idle(spi, delay)?;
+        // SW reset
+        self.command(spi, Command::SwReset)?;
+        self.wait_until_idle(spi, delay)?;
 
-            self.set_lut(spi, delay, Some(self.refresh))?;
+        //Display Update control
+        self.cmd_with_data(spi, Command::DisplayUpdateControl1, &[0x40, 0x00])?;
 
-            // Python code does this, not sure why
-            // self.cmd_with_data(spi, Command::WriteOtpSelection, &[0, 0, 0, 0, 0x40, 0, 0])?;
+        //BorderWavefrom
+        self.cmd_with_data(spi, Command::BorderWaveformControl, &[0x05])?;
 
-            // During partial update, clock/analog are not disabled between 2
-            // updates.
-            self.set_display_update_control_2(
-                spi,
-                DisplayUpdateControl2::new().enable_analog().enable_clock(),
-            )?;
-            self.command(spi, Command::MasterActivation)?;
-            self.wait_until_idle(spi, delay)?;
+        //Data entry mode X-mode
+        self.cmd_with_data(spi, Command::DataEntryModeSetting, &[0x03])?;
 
-            self.set_border_waveform(
-                spi,
-                BorderWaveForm {
-                    vbd: BorderWaveFormVbd::Gs,
-                    fix_level: BorderWaveFormFixLevel::Vss,
-                    gs_trans: BorderWaveFormGs::Lut1,
-                },
-            )?;
-        } else {
-            self.wait_until_idle(spi, delay)?;
-            self.command(spi, Command::SwReset)?;
-            self.wait_until_idle(spi, delay)?;
+        //Set RAM X address start/end position
+        self.cmd_with_data(spi, Command::SetRamXAddressStartEndPosition, &[0x00, 0x31])?;
 
-            self.set_driver_output(
-                spi,
-                DriverOutput {
-                    scan_is_linear: true,
-                    scan_g0_is_first: true,
-                    scan_dir_incr: true,
-                    width: (HEIGHT - 1) as u16,
-                },
-            )?;
+        //Set RAM Y address start/end position
+        self.cmd_with_data(
+            spi,
+            Command::SetRamYAddressStartEndPosition,
+            &[0x00, 0x00, 0x2B, 0x01],
+        )?;
 
-            // These 2 are the reset values
-            self.set_dummy_line_period(spi, 0x30)?;
-            self.set_gate_scan_start_position(spi, 0)?;
+        //Set RAM X address counter
+        self.cmd_with_data(spi, Command::SetRamXAddressCounter, &[0x00])?;
 
-            self.set_data_entry_mode(spi, DataEntryModeIncr::XIncrYIncr, DataEntryModeDir::XDir)?;
-
-            // Use simple X/Y auto increase
-            self.set_ram_area(spi, 0, 0, WIDTH - 1, HEIGHT - 1)?;
-            self.set_ram_address_counters(spi, delay, 0, 0)?;
-
-            self.set_border_waveform(
-                spi,
-                BorderWaveForm {
-                    vbd: BorderWaveFormVbd::Gs,
-                    fix_level: BorderWaveFormFixLevel::Vss,
-                    gs_trans: BorderWaveFormGs::Lut3,
-                },
-            )?;
-
-            self.set_vcom_register(spi, (-21).vcom())?;
-
-            self.set_gate_driving_voltage(spi, 190.gate_driving_decivolt())?;
-            self.set_source_driving_voltage(
-                spi,
-                150.source_driving_decivolt(),
-                50.source_driving_decivolt(),
-                (-150).source_driving_decivolt(),
-            )?;
-
-            self.set_gate_line_width(spi, 10)?;
-
-            self.set_lut(spi, delay, Some(self.refresh))?;
-        }
+        //Set RAM Y address counter
+        self.cmd_with_data(spi, Command::SetRamYAddressCounter, &[0x00, 0x00])?;
 
         self.wait_until_idle(spi, delay)?;
+
+        // if self.refresh == RefreshLut::Quick {
+        //     self.set_vcom_register(spi, (-9).vcom())?;
+        //     self.wait_until_idle(spi, delay)?;
+
+        //     self.set_lut(spi, delay, Some(self.refresh))?;
+
+        //     // Python code does this, not sure why
+        //     // self.cmd_with_data(spi, Command::WriteOtpSelection, &[0, 0, 0, 0, 0x40, 0, 0])?;
+
+        //     // During partial update, clock/analog are not disabled between 2
+        //     // updates.
+        //     self.set_display_update_control_2(
+        //         spi,
+        //         DisplayUpdateControl2::new().enable_analog().enable_clock(),
+        //     )?;
+        //     self.command(spi, Command::MasterActivation)?;
+        //     self.wait_until_idle(spi, delay)?;
+
+        //     self.set_border_waveform(
+        //         spi,
+        //         BorderWaveForm {
+        //             vbd: BorderWaveFormVbd::Gs,
+        //             fix_level: BorderWaveFormFixLevel::Vss,
+        //             gs_trans: BorderWaveFormGs::Lut1,
+        //         },
+        //     )?;
+        // } else {
+        //     self.wait_until_idle(spi, delay)?;
+        //     self.command(spi, Command::SwReset)?;
+        //     self.wait_until_idle(spi, delay)?;
+
+        //     self.set_driver_output(
+        //         spi,
+        //         DriverOutput {
+        //             scan_is_linear: true,
+        //             scan_g0_is_first: true,
+        //             scan_dir_incr: true,
+        //             width: (HEIGHT - 1) as u16,
+        //         },
+        //     )?;
+
+        //     // These 2 are the reset values
+        //     self.set_dummy_line_period(spi, 0x30)?;
+        //     self.set_gate_scan_start_position(spi, 0)?;
+
+        //     self.set_data_entry_mode(spi, DataEntryModeIncr::XIncrYIncr, DataEntryModeDir::XDir)?;
+
+        //     // Use simple X/Y auto increase
+        //     self.set_ram_area(spi, 0, 0, WIDTH - 1, HEIGHT - 1)?;
+        //     self.set_ram_address_counters(spi, delay, 0, 0)?;
+
+        //     self.set_border_waveform(
+        //         spi,
+        //         BorderWaveForm {
+        //             vbd: BorderWaveFormVbd::Gs,
+        //             fix_level: BorderWaveFormFixLevel::Vss,
+        //             gs_trans: BorderWaveFormGs::Lut3,
+        //         },
+        //     )?;
+
+        //     self.set_vcom_register(spi, (-21).vcom())?;
+
+        //     self.set_gate_driving_voltage(spi, 190.gate_driving_decivolt())?;
+        //     self.set_source_driving_voltage(
+        //         spi,
+        //         150.source_driving_decivolt(),
+        //         50.source_driving_decivolt(),
+        //         (-150).source_driving_decivolt(),
+        //     )?;
+
+        //     self.set_gate_line_width(spi, 10)?;
+
+        //     self.set_lut(spi, delay, Some(self.refresh))?;
+        // }
+
+        // self.wait_until_idle(spi, delay)?;
         Ok(())
     }
 }
@@ -202,7 +234,6 @@ where
         epd.init(spi, delay)?;
         Ok(epd)
     }
-
     fn wake_up(&mut self, spi: &mut SPI, delay: &mut DELAY) -> Result<(), SPI::Error> {
         self.init(spi, delay)
     }
@@ -232,15 +263,15 @@ where
         delay: &mut DELAY,
     ) -> Result<(), SPI::Error> {
         assert!(buffer.len() == buffer_len(WIDTH as usize, HEIGHT as usize));
-        self.set_ram_area(spi, 0, 0, WIDTH - 1, HEIGHT - 1)?;
-        self.set_ram_address_counters(spi, delay, 0, 0)?;
+        // self.set_ram_area(spi, 0, 0, WIDTH - 1, HEIGHT - 1)?;
+        // self.set_ram_address_counters(spi, delay, 0, 0)?;
 
         self.cmd_with_data(spi, Command::WriteRam, buffer)?;
 
         if self.refresh == RefreshLut::Full {
             // Always keep the base buffer equal to current if not doing partial refresh.
-            self.set_ram_area(spi, 0, 0, WIDTH - 1, HEIGHT - 1)?;
-            self.set_ram_address_counters(spi, delay, 0, 0)?;
+            // self.set_ram_area(spi, 0, 0, WIDTH - 1, HEIGHT - 1)?;
+            // self.set_ram_address_counters(spi, delay, 0, 0)?;
 
             self.cmd_with_data(spi, Command::WriteRamRed, buffer)?;
         }
@@ -296,19 +327,20 @@ where
     /// Never use directly this function when using partial refresh, or also
     /// keep the base buffer in syncd using `set_partial_base_buffer` function.
     fn display_frame(&mut self, spi: &mut SPI, delay: &mut DELAY) -> Result<(), SPI::Error> {
-        if self.refresh == RefreshLut::Full {
-            self.set_display_update_control_2(
-                spi,
-                DisplayUpdateControl2::new()
-                    .enable_clock()
-                    .enable_analog()
-                    .display()
-                    .disable_analog()
-                    .disable_clock(),
-            )?;
-        } else {
-            self.set_display_update_control_2(spi, DisplayUpdateControl2::new().display())?;
-        }
+        // if self.refresh == RefreshLut::Full {
+        //     self.set_display_update_control_2(
+        //         spi,
+        //         DisplayUpdateControl2::new()
+        //             .enable_clock()
+        //             .enable_analog()
+        //             .display()
+        //             .disable_analog()
+        //             .disable_clock(),
+        //     )?;
+        // } else {
+        //     self.set_display_update_control_2(spi, DisplayUpdateControl2::new().display())?;
+        // }
+        self.cmd_with_data(spi, Command::DisplayUpdateControl2, &[0xF7])?;
 
         self.command(spi, Command::MasterActivation)?;
         self.wait_until_idle(spi, delay)?;
