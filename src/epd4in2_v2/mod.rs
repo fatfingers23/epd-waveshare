@@ -89,6 +89,22 @@ where
         //BorderWavefrom
         self.cmd_with_data(spi, Command::BorderWaveformControl, &[0x05])?;
 
+        //Partial stuff?
+        if self.refresh == RefreshLut::Quick {
+            info!("Quick refresh");
+            //TODO can do 1.5s(0x^E) or 1s(0x5A)
+            //1s
+            //Write to temperature register
+            self.cmd_with_data(spi, Command::TemperatureSensorControlWrite, &[0x5A])?;
+
+            //TODO says "Load temperature value" need to read up more
+            self.cmd_with_data(spi, Command::DisplayUpdateControl2, &[0x91])?;
+
+            self.command(spi, Command::MasterActivation)?;
+
+            self.wait_until_idle(spi, delay)?;
+        }
+
         //Data entry mode X-mode
         self.cmd_with_data(spi, Command::DataEntryModeSetting, &[0x03])?;
 
@@ -186,6 +202,7 @@ where
         // }
 
         // self.wait_until_idle(spi, delay)?;
+        info!("Init done");
         Ok(())
     }
 }
@@ -292,6 +309,11 @@ where
         // incorrect.
         assert!(self.refresh == RefreshLut::Full);
 
+        //TODO from void EPD_4IN2_V2_PartialDisplay
+        self.cmd_with_data(spi, Command::BorderWaveformControl, &[0x80])?;
+        self.cmd_with_data(spi, Command::DisplayUpdateControl1, &[0x00, 0x00])?;
+        self.cmd_with_data(spi, Command::BorderWaveformControl, &[0x80])?;
+
         self.set_ram_area(spi, x, y, x + width, y + height)?;
         self.set_ram_address_counters(spi, delay, x, y)?;
 
@@ -311,20 +333,16 @@ where
     /// Never use directly this function when using partial refresh, or also
     /// keep the base buffer in syncd using `set_partial_base_buffer` function.
     fn display_frame(&mut self, spi: &mut SPI, delay: &mut DELAY) -> Result<(), SPI::Error> {
-        // if self.refresh == RefreshLut::Full {
-        //     self.set_display_update_control_2(
-        //         spi,
-        //         DisplayUpdateControl2::new()
-        //             .enable_clock()
-        //             .enable_analog()
-        //             .display()
-        //             .disable_analog()
-        //             .disable_clock(),
-        //     )?;
-        // } else {
-        //     self.set_display_update_control_2(spi, DisplayUpdateControl2::new().display())?;
-        // }
-        self.cmd_with_data(spi, Command::DisplayUpdateControl2, &[0xF7])?;
+        if self.refresh == RefreshLut::Full {
+            self.cmd_with_data(spi, Command::DisplayUpdateControl2, &[0xF7])?;
+        } else {
+            info!("I am speed");
+            //For fast reload
+            self.cmd_with_data(spi, Command::DisplayUpdateControl2, &[0xC7])?;
+
+            //For partial reload just teting need to find a way to allow both, i thik
+            // self.cmd_with_data(spi, Command::DisplayUpdateControl2, &[0x20])?;
+        }
 
         self.command(spi, Command::MasterActivation)?;
         self.wait_until_idle(spi, delay)?;
@@ -342,7 +360,8 @@ where
         self.display_frame(spi, delay)?;
 
         if self.refresh == RefreshLut::Quick {
-            self.set_partial_base_buffer(spi, delay, buffer)?;
+            //TODO come back
+            // self.set_partial_base_buffer(spi, delay, buffer)?;
         }
         Ok(())
     }
