@@ -55,6 +55,7 @@ pub(crate) enum Command {
     SetDigitalBlockControl = 0x7E,
 
     Nop = 0x7F,
+    ThreeF = 0x3F,
 }
 
 pub(crate) struct DriverOutput {

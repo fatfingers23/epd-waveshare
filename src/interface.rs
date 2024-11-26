@@ -144,7 +144,6 @@ where
             // - delay waiting enables task switching on realtime OS
             // -> keep it and leave the decision to the user
             if self.delay_us > 0 {
-                info!("busy waiting");
                 delay.delay_us(self.delay_us);
             }
         }

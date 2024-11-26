@@ -260,6 +260,13 @@ where
         width: u32,
         height: u32,
     ) -> Result<(), SPI::Error> {
+        //log out assert values
+        info!(
+            "x: {:?}, y: {:?}, width: {:?}, height: {:?}",
+            x, y, width, height
+        );
+        info!("buffer len: {:?}", buffer.len());
+
         assert!((width * height / 8) as usize == buffer.len());
 
         // This should not be used when doing partial refresh. The RAM_RED must
@@ -302,6 +309,7 @@ where
         } else {
             self.set_display_update_control_2(spi, DisplayUpdateControl2::new().display())?;
         }
+
         self.command(spi, Command::MasterActivation)?;
         self.wait_until_idle(spi, delay)?;
 
@@ -379,7 +387,12 @@ where
             Some(RefreshLut::Quick) => &LUT_ALL,
         };
 
-        self.cmd_with_data(spi, Command::WriteLutRegister, buffer)
+        //Set lut
+        self.cmd_with_data(spi, Command::WriteLutRegister, &buffer[..227])?;
+
+        self.cmd_with_data(spi, Command::ThreeF, &[LUT_ALL[227]])?;
+
+        Ok(())
     }
 
     fn wait_until_idle(&mut self, _spi: &mut SPI, delay: &mut DELAY) -> Result<(), SPI::Error> {
@@ -466,6 +479,7 @@ where
         spi: &mut SPI,
         voltage: GateDrivingVoltage,
     ) -> Result<(), SPI::Error> {
+        info!("Gate driving voltage: {:X}", voltage.0);
         self.cmd_with_data(spi, Command::GateDrivingVoltageCtrl, &[voltage.0])
     }
 
@@ -504,7 +518,9 @@ where
         spi: &mut SPI,
         value: DisplayUpdateControl2,
     ) -> Result<(), SPI::Error> {
-        info!("Display update control 2: {:?}", value.0);
+        //Print as hex
+        info!("Display update control 2: {:X}", value.0);
+        //May try setting 0xF7 cause its in the py script
         self.cmd_with_data(spi, Command::DisplayUpdateControl2, &[value.0])
     }
 
@@ -526,6 +542,7 @@ where
         counter_direction: DataEntryModeDir,
     ) -> Result<(), SPI::Error> {
         let mode = counter_incr_mode as u8 | counter_direction as u8;
+        info!("Data entry mode: {:X}", mode);
         self.cmd_with_data(spi, Command::DataEntryModeSetting, &[mode])
     }
 
