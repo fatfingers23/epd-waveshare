@@ -188,19 +188,6 @@ impl BorderWaveForm {
     }
 }
 
-#[allow(dead_code)]
-#[derive(Copy, Clone)]
-pub enum DeepSleepMode {
-    // Sleeps and keeps access to RAM and controller
-    Normal = 0x00,
-
-    // Sleeps without access to RAM/controller but keeps RAM content
-    Mode1 = 0x01,
-
-    // Same as MODE_1 but RAM content is not kept
-    Mode2 = 0x11,
-}
-
 pub(crate) struct GateDrivingVoltage(pub u8);
 pub(crate) struct SourceDrivingVoltage(pub u8);
 pub(crate) struct Vcom(pub u8);

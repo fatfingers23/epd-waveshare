@@ -23,8 +23,8 @@ use crate::traits::{InternalWiAdditions, RefreshLut, WaveshareDisplay};
 pub(crate) mod command;
 use self::command::{
     BorderWaveForm, BorderWaveFormFixLevel, BorderWaveFormGs, BorderWaveFormVbd, Command,
-    DataEntryModeDir, DataEntryModeIncr, DeepSleepMode, DisplayUpdateControl2, DriverOutput,
-    GateDrivingVoltage, I32Ext, SourceDrivingVoltage, Vcom,
+    DataEntryModeDir, DataEntryModeIncr, DisplayUpdateControl2, DriverOutput, GateDrivingVoltage,
+    I32Ext, SourceDrivingVoltage, Vcom,
 };
 
 pub(crate) mod constants;
@@ -51,6 +51,20 @@ pub const HEIGHT: u32 = 300;
 pub const DEFAULT_BACKGROUND_COLOR: Color = Color::White;
 const IS_BUSY_LOW: bool = false;
 const SINGLE_BYTE_WRITE: bool = true;
+
+/// Sleep modes
+#[allow(dead_code)]
+#[derive(Copy, Clone)]
+pub enum DeepSleepMode {
+    /// Sleeps and keeps access to RAM and controller
+    Normal = 0x00,
+
+    /// Sleeps without access to RAM/controller but keeps RAM content
+    Mode1 = 0x01,
+
+    /// Same as MODE_1 but RAM content is not kept
+    Mode2 = 0x11,
+}
 
 /// Epd4in2 V2 driver
 ///
@@ -241,17 +255,6 @@ where
 
     fn sleep(&mut self, spi: &mut SPI, delay: &mut DELAY) -> Result<(), SPI::Error> {
         self.wait_until_idle(spi, delay)?;
-
-        // All sample code enables and disables analog/clocks...
-        self.set_display_update_control_2(
-            spi,
-            DisplayUpdateControl2::new()
-                .enable_analog()
-                .enable_clock()
-                .disable_analog()
-                .disable_clock(),
-        )?;
-        self.command(spi, Command::MasterActivation)?;
 
         self.set_sleep_mode(spi, self.sleep_mode)?;
         Ok(())
