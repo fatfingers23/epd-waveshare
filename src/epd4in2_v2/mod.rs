@@ -1,17 +1,10 @@
-//! A Driver for the Waveshare 2.13" E-Ink Display (V2 and V3) via SPI
+//! A Driver for the Waveshare 4.2" E-Ink Display V2 via SPI
 //!
 //! # References V2
 //!
-//! - [Waveshare product page](https://www.waveshare.com/wiki/2.13inch_e-Paper_HAT)
-//! - [Waveshare C driver](https://github.com/waveshare/e-Paper/blob/master/RaspberryPi%26JetsonNano/c/lib/e-Paper/EPD_2in13_V2.c)
-//! - [Waveshare Python driver](https://github.com/waveshare/e-Paper/blob/master/RaspberryPi%26JetsonNano/python/lib/waveshare_epd/epd2in13_V2.py)
-//! - [Controller Datasheet SS1780](http://www.e-paper-display.com/download_detail/downloadsId=682.html)
-//!
-//! # References V3
-//!
-//! - [Waveshare product page](https://www.waveshare.com/wiki/2.13inch_e-Paper_HAT)
-//! - [Waveshare C driver](https://github.com/waveshare/e-Paper/blob/master/RaspberryPi_JetsonNano/c/lib/e-Paper/EPD_2in13_V3.c)
-//! - [Waveshare Python driver](https://github.com/waveshare/e-Paper/blob/master/RaspberryPi_JetsonNano/python/lib/waveshare_epd/epd2in9b_V3.py)
+//! - [Waveshare product page](https://www.waveshare.com/wiki/4.2inch_e-Paper_Module_Manual#Introduction)
+//! - [Waveshare C driver](https://github.com/waveshareteam/Pico_ePaper_Code/blob/main/c/lib/e-Paper/EPD_4in2_V2.c)
+//! - [Waveshare Python driver](https://github.com/waveshareteam/Pico_ePaper_Code/blob/main/python/Pico-ePaper-4.2_V2.py)
 //! - [Controller Datasheet SS1780](http://www.e-paper-display.com/download_detail/downloadsId=682.html)
 //!
 
@@ -37,14 +30,6 @@ use self::command::{
 pub(crate) mod constants;
 
 use self::constants::LUT_ALL;
-// #[cfg(all(feature = "epd2in13_v2", feature = "epd2in13_v3"))]
-// compile_error!(
-//     "feature \"epd2in13_v2\" and feature \"epd2in13_v3\" cannot be enabled at the same time"
-// );
-// #[cfg(not(any(feature = "epd2in13_v2", feature = "epd2in13_v3")))]
-// compile_error!(
-//     "One of feature \"epd2in13_v2\" and feature \"epd2in13_v3\" needs to be enabled as a feature"
-// );
 
 /// Full size buffer for use with the 2in13 v2 and v3 EPD
 #[cfg(feature = "graphics")]
@@ -67,9 +52,8 @@ pub const DEFAULT_BACKGROUND_COLOR: Color = Color::White;
 const IS_BUSY_LOW: bool = false;
 const SINGLE_BYTE_WRITE: bool = true;
 
-/// Epd2in13 (V2 & V3) driver
+/// Epd4in2 V2 driver
 ///
-/// To use this driver for V2 of the display, feature \"epd2in13_v3\" needs to be disabled and feature \"epd2in13_v2\" enabled.
 pub struct Epd4in2<SPI, BUSY, DC, RST, DELAY> {
     /// Connection Interface
     interface: DisplayInterface<SPI, BUSY, DC, RST, DELAY, SINGLE_BYTE_WRITE>,
