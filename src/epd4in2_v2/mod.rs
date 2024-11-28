@@ -370,10 +370,11 @@ where
     }
 
     fn clear_frame(&mut self, spi: &mut SPI, delay: &mut DELAY) -> Result<(), SPI::Error> {
-        let color = self.background_color.get_byte_value();
-
-        self.set_ram_area(spi, 0, 0, WIDTH - 1, HEIGHT - 1)?;
-        self.set_ram_address_counters(spi, delay, 0, 0)?;
+        // let color = self.background_color.get_byte_value();
+        let color = Color::White.get_byte_value();
+        // info!("Clearing frame with color: {:X}", self.background_color);
+        // self.set_ram_area(spi, 0, 0, WIDTH - 1, HEIGHT - 1)?;
+        // self.set_ram_address_counters(spi, delay, 0, 0)?;
 
         self.command(spi, Command::WriteRam)?;
         self.interface.data_x_times(
@@ -384,8 +385,8 @@ where
 
         // Always keep the base buffer equals to current if not doing partial refresh.
         if self.refresh == RefreshLut::Full {
-            self.set_ram_area(spi, 0, 0, WIDTH - 1, HEIGHT - 1)?;
-            self.set_ram_address_counters(spi, delay, 0, 0)?;
+            // self.set_ram_area(spi, 0, 0, WIDTH - 1, HEIGHT - 1)?;
+            // self.set_ram_address_counters(spi, delay, 0, 0)?;
 
             self.command(spi, Command::WriteRamRed)?;
             self.interface.data_x_times(
@@ -394,6 +395,8 @@ where
                 buffer_len(WIDTH as usize, HEIGHT as usize) as u32,
             )?;
         }
+
+        self.display_frame(spi, delay)?;
         Ok(())
     }
 
